@@ -40,6 +40,7 @@ class TableGenerator(object):
             castle_line = False
             portal_line = False
             for line in input_file:
+                line = line[:-1]
                 if first_line:
                     rooms_no = int(line)
                     castle = [[] for _ in range(rooms_no)]
@@ -55,12 +56,12 @@ class TableGenerator(object):
                         castle[current_room].append(line.split(','))
 
                 elif portal_line:
-                    numbers = [x for x in line if x.isdigit()]
+                    numbers = [int(x) for x in line if x.isdigit()]
                     portals.append(
                         ((numbers[0], numbers[1], numbers[2]),
                          (numbers[3], numbers[4], numbers[5])))
 
-        return portals, table
+        return portals, castle
 
     @staticmethod
     def validate_points(point1, point2):
@@ -258,8 +259,7 @@ class TableGenerator(object):
 
 if __name__ == '__main__':
     table_generator = TableGenerator()
-    portals, table = table_generator.generate_table(5, [(10, 10), (10, 10), (10, 10), (10, 10),
-                                                        (10, 10)], 5, 10, 10, 40)
+    portals, table = table_generator.generate_table(2, [(10, 10), (10, 10)], 1, 2, 10, 15)
     table_generator.write_table(table, portals, 'test.txt')
 
     portals2, table2 = table_generator.read_table('test.txt')
