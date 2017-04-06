@@ -11,6 +11,7 @@ STEP_REWARD = -1
 
 GUARD_INVALID_CODES = ['#', 'P', 'T']
 HERO_INVALID_CODES = ['#', 'P', 'T']
+ALL_MOVES = ["RIGHT", "LEFT", "UP", "DOWN", "STAY"]
 
 class Game(object):
     def __init__(self, filename, radius):
@@ -166,32 +167,38 @@ class Game(object):
         return (pos_x >= 0 and pos_x < room_x and pos_y >= 0 and pos_y < room_y and
                 self.curr_game_map[room][pos_x][pos_y] not in invalid_codes)
 
+    def _next_pos(self, action):
+        new_x, new_y = (0, 0)
+        _, h_x, h_y = self.current_pos
+        if action == 'RIGHT':
+            new_x, new_y = h_x, h_y + 1
+        elif action == 'LEFT':
+            new_x, new_y = h_x, h_y - 1
+        elif action == 'UP':
+            new_x, new_y = h_x - 1, h_y
+        elif action == 'DOWN':
+            new_x, new_y = h_x + 1, h_y
+        else:
+            new_x, new_y = h_x, h_y
+
+        return new_x, new_y
+
     def game_move(self, action):
-        new_state, reward = self.apply_action(action)
-        g_pos, _ = self.deserialize_state(state)
+        new_state, new_reward = self.apply_action(action)
+        g_pos, _ = self.deserialize_state(new_state)
         # Here i will apply move
         if g_pos:
             g_pos = self.move_guard(g_pos)
 
 
         new_state_serialized = self.serialize_state()
-        return new_state_serialized, reward
+        return new_state_serialized, new_reward
 
     def apply_action(self, action):
         h_r, h_x, h_y = self.current_pos
         next_h_r, next_h_x, next_h_y = self.current_pos
 
-        if action == 'RIGHT':
-            next_h_x, next_h_y = h_x, h_y + 1
-        elif action == 'LEFT':
-            next_h_x, next_h_y = h_x, h_y - 1
-        elif action == 'UP':
-            next_h_x, next_h_y = h_x - 1, h_y
-        elif action == 'DOWN':
-            next_h_x, next_h_y = h_x + 1, h_y
-        else:
-            next_h_x, next_h_y = h_x, h_y
-
+        next_h_x, next_h_y = self._next_pos(action)
         new_reward = 0
         # Portal case
         if self.curr_game_map[next_h_r][next_h_x][next_h_y] == 'P':
@@ -201,10 +208,12 @@ class Game(object):
 
         new_reward = self.curr_game_rewards[next_h_r][next_h_x][next_h_y]
         #update pos
-        print self.current_pos, (next_h_r, next_h_x, next_h_y)
         self.current_pos = (next_h_r, next_h_x, next_h_y)
+
         if self.last_hero_step != 'T':
             self.curr_game_map[h_r][h_x][h_y] = self.last_hero_step
+        else:
+            self.curr_game_map[h_r][h_x][h_y] = '_'
 
         self.last_hero_step = self.curr_game_map[next_h_r][next_h_x][next_h_y]
         self.curr_game_map[next_h_r][next_h_x][next_h_y] = 'H'
@@ -214,6 +223,16 @@ class Game(object):
 
     def is_final_state(self):
         return self.current_pos == self.finish_pos
+
+
+    def get_legal_actions(self):
+        actions = []
+        room = self.current_pos[0]
+        for curr_move in ALL_MOVES:
+            new_x, new_y = self._next_pos(curr_move)
+            if self._valid_hero_pos(room, new_x, new_y):
+                actions.append(curr_move)
+        return actions
 
     def serialize_state(self):
         h_r, h_x, h_y = self.current_pos
@@ -231,6 +250,7 @@ class Game(object):
                 new_state.append(self.curr_game_map[h_r][s_x + i][s_y + j])
         serialized_state = ''.join(new_state)
         return serialized_state
+
 
     def deserialize_state(self, state):
         g_pos = None
@@ -255,21 +275,21 @@ class Game(object):
         return g_pos, state_extended
 
 
-    # def print_game_state(self, state):
-
-
 if __name__ == '__main__':
     game = Game('test.txt', 2)
     game.print_game_initial_configuration()
     # game.print_current_game()
-    for _ in range(10):
+    for p in range(1000):
         state = game.serialize_state()
         _, state1 = game.deserialize_state(state)
-        for h in state1:
-            print h
-        print ''
-        sleep(0.5)
-        state, reward = game.game_move('RIGHT')
+        # for h in state1:
+        #     print h
+        # print ''
+        sleep(0.2)
+        action = choice(game.get_legal_actions())
+        print "ACTION: %s " % action
+        state, reward = game.game_move(action)
+        print "New Reward", reward
         _, state = game.deserialize_state(state)
         for h in state:
             print h
