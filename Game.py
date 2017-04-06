@@ -1,7 +1,7 @@
 from table_ganerator import TableGenerator
 from copy import deepcopy
 from utils import distance
-from random import choice
+from random import choice, random
 from time import sleep
 
 
@@ -300,6 +300,22 @@ class Game(object):
         return best_action
         # return choice(legal_actions)
 
+    def epsilon_greedy(self, Q, state, legal_actions, epsilon):
+        unused_actions = []
+        for curr_action in legal_actions:
+            if not (state, curr_action) in Q:
+                Q[(state, curr_action)] = 0
+            if Q[(state, curr_action)] == 0:
+                unused_actions.append(curr_action)
+
+        if unused_actions:
+            return choice(unused_actions)
+
+        random_value = random()
+        if random_value < epsilon:
+            return choice(legal_actions)
+        else:
+            return self.best_action(Q, state, legal_actions)
 
 if __name__ == '__main__':
     game = Game('test1.txt', 4)
@@ -307,7 +323,7 @@ if __name__ == '__main__':
     # game.print_current_game()
     pas = 0
     score = 0
-    EPISODES = 1000
+    EPISODES = 9000
     Q = {}
     scores = []
 
@@ -315,11 +331,12 @@ if __name__ == '__main__':
         game.reset_game()
         score = 0
         pas = 0
-        while pas < 100000 and not game.is_final_state():
+        while pas < 10000 and not game.is_final_state():
             state = game.serialize_state()
             # sleep(0.1)
             # action = choice(game.get_legal_actions())
-            action = game.best_action(Q, state, game.get_legal_actions())
+            # action = game.best_action(Q, state, game.get_legal_actions())
+            action = game.epsilon_greedy(Q, state, game.get_legal_actions(), 0.05)
 
             if (state, action) not in Q:
                 Q[(state, action)] = 0
@@ -346,11 +363,12 @@ if __name__ == '__main__':
 
     game.reset_game()
     score = 0
-    while pas < 100000 and not game.is_final_state():
+    while pas < 10000 and not game.is_final_state():
         state = game.serialize_state()
         # sleep(0.1)
         # action = choice(game.get_legal_actions())
-        action = game.best_action(Q, state, game.get_legal_actions())
+        # action = game.best_action(Q, state, game.get_legal_actions())
+        action = game.epsilon_greedy(Q, state, game.get_legal_actions(), 0.05)
         print action
         new_state, reward = game.game_move(action)
         print reward
