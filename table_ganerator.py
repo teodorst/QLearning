@@ -1,6 +1,5 @@
 from random import choice, randint
-# ma gandesc sa fac un arbore minim de acoperire
-
+import re
 
 from utils import distance, validate_wall_item, validate_item
 
@@ -56,7 +55,8 @@ class TableGenerator(object):
                         castle[current_room].append(line.split(','))
 
                 elif portal_line:
-                    numbers = [int(x) for x in line if x.isdigit()]
+                    print line
+                    numbers = [int(x) for x in re.findall('\d+', line)]
                     portals.append(
                         ((numbers[0], numbers[1], numbers[2]),
                          (numbers[3], numbers[4], numbers[5])))
@@ -259,10 +259,10 @@ class TableGenerator(object):
 
 if __name__ == '__main__':
     table_generator = TableGenerator()
-    portals, table = table_generator.generate_table(2, [(10, 10), (10, 10)], 1, 2, 10, 15)
-    table_generator.write_table(table, portals, 'test.txt')
+    # portals, table = table_generator.generate_table(2, [(20, 20), (10, 10)], 1, 2, 30, 15)
+    # table_generator.write_table(table, portals, 'test1.txt')
 
-    portals2, table2 = table_generator.read_table('test.txt')
+    portals2, table2 = table_generator.read_table('test1.txt')
     # print table2
     print portals2
 

@@ -5,12 +5,12 @@ from random import choice
 from time import sleep
 
 
-TREASURE_REWARD = 100
-FINISH_REWARD = 1000
-STEP_REWARD = -1
+TREASURE_REWARD = 1000
+FINISH_REWARD = 5000
+STEP_REWARD = -10
 
 GUARD_INVALID_CODES = ['#', 'P', 'T']
-HERO_INVALID_CODES = ['#', 'P', 'T']
+HERO_INVALID_CODES = ['#', 'G']
 ALL_MOVES = ["RIGHT", "LEFT", "UP", "DOWN", "STAY"]
 
 class Game(object):
@@ -25,14 +25,14 @@ class Game(object):
         table_gen = TableGenerator()
         portals, game_map = table_gen.read_table(filename)
         self.game_map = game_map
-        self.initial_rewards = {}
         self.initial_guards = list()
         self.rooms_no = len(game_map)
         self.rooms_dim = [(len(game_map[x]), len(game_map[x][0])) for x in range(self.rooms_no)]
         self.portals = []
         self.start_pos = None
         self.finish_pos = None
-        self.curr_game_rewards = deepcopy(self.game_map)
+        self.busted = False
+        self.initial_rewards = deepcopy(self.game_map)
         for portal in portals:
             entry, out = portal
             self.portals.append((entry, out))
@@ -43,29 +43,27 @@ class Game(object):
             for i in range(self.rooms_dim[room][0]):
                 for j in range(self.rooms_dim[room][1]):
                     if self.game_map[room][i][j] == 'T':
-                        self.initial_rewards[(room, i, j)] = TREASURE_REWARD
                         room_reward += TREASURE_REWARD
-                        self.curr_game_rewards[room][i][j] = TREASURE_REWARD
+                        self.initial_rewards[room][i][j] = TREASURE_REWARD
                     elif self.game_map[room][i][j] == 'F':
-                        self.initial_rewards[(room, i, j)] = FINISH_REWARD
                         self.finish_pos = (room, i, j)
                         room_reward += FINISH_REWARD
-                        self.curr_game_rewards[room][i][j] = FINISH_REWARD
+                        self.initial_rewards[room][i][j] = FINISH_REWARD
                     elif self.game_map[room][i][j] == 'G':
                         self.initial_guards.append((room, i, j))
-                        self.curr_game_rewards[room][i][j] = STEP_REWARD
+                        self.initial_rewards[room][i][j] = STEP_REWARD
                     elif self.game_map[room][i][j] == 'H':
                         self.start_pos = (room, i, j)
                         self.last_hero_step = '_'
-                        self.curr_game_rewards[room][i][j] = STEP_REWARD
+                        self.initial_rewards[room][i][j] = STEP_REWARD
                     else:
-                        self.curr_game_rewards[room][i][j] = STEP_REWARD
 
-                for portal in self.portals:
-                    entry, out = portal
-                    print entry, out
-                    if out[0] == room:
-                        self.initial_rewards[entry] = room_reward
+                        self.initial_rewards[room][i][j] = STEP_REWARD
+
+                # for portal in self.portals:
+                #     entry, out = portal
+                #     if out[0] == room:
+                #         self.initial_rewards[entry] = room_reward
 
 
 
@@ -74,8 +72,11 @@ class Game(object):
         self.rewards = deepcopy(self.initial_rewards)
         self.guards = deepcopy(self.initial_guards)
         self.current_pos = deepcopy(self.start_pos)
+        self.curr_game_rewards = deepcopy(self.initial_rewards)
         self.is_finished = False
+        self.last_hero_step = '_'
         self.score = 0
+        self.busted = 0
 
     def print_game_initial_configuration(self):
 
@@ -91,9 +92,9 @@ class Game(object):
         for guard in self.initial_guards:
             print guard
 
-        print 'Rewards: '
-        for pos in self.initial_rewards:
-            print pos, self.initial_rewards[pos]
+        # print 'Rewards: '
+        # for pos in self.initial_rewards:
+        #     print pos, self.initial_rewards[pos]
 
     def print_current_game(self):
         for room in range(self.rooms_no):
@@ -101,14 +102,6 @@ class Game(object):
                 dim_x, _ = self.rooms_dim[room]
                 for i in range(dim_x):
                     print self.curr_game_map[room][i]
-        # This is for DEBUG
-        # print 'Guards '
-        # for guard in self.guards:
-        #     print guard
-
-        # print 'Rewards: '
-        # for pos in self.rewards:
-        #     print pos, self.rewards[pos]
 
 
     def next_guard_pos(self, g_row, g_col):
@@ -189,7 +182,9 @@ class Game(object):
         # Here i will apply move
         if g_pos:
             g_pos = self.move_guard(g_pos)
-
+            _, h_x, h_y = self.current_pos
+            if (h_x, h_y) == g_pos:
+                self.busted = True
 
         new_state_serialized = self.serialize_state()
         return new_state_serialized, new_reward
@@ -202,27 +197,42 @@ class Game(object):
         new_reward = 0
         # Portal case
         if self.curr_game_map[next_h_r][next_h_x][next_h_y] == 'P':
-            portal = [x for x in self.portals if x[0] == (next_h_r, next_h_x, next_h_y)][0]
-            next_h_r, next_h_x, next_h_y = portal[1]
+            self.curr_game_map[h_r][h_x][h_y] = '_'
+            self.last_hero_step = 'P'
+            h_r, h_x, h_y = (next_h_r, next_h_x, next_h_y)
+
+            try:
+                portal = [x for x in self.portals if x[0] == (next_h_r, next_h_x, next_h_y)][0]
+                next_h_r, next_h_x, next_h_y = portal[1]
+            except IndexError as e:
+                print (next_h_r, next_h_x, next_h_y)
+                for room in range(self.rooms_no):
+                    for i in range(self.rooms_dim[room][0]):
+                        print self.curr_game_map[room][i]
+                    print ''
+                print self.portals
             # update ex reward here
 
         new_reward = self.curr_game_rewards[next_h_r][next_h_x][next_h_y]
+        if new_reward == TREASURE_REWARD:
+            self.curr_game_rewards[next_h_r][next_h_x][next_h_y] = STEP_REWARD
         #update pos
         self.current_pos = (next_h_r, next_h_x, next_h_y)
 
-        if self.last_hero_step != 'T':
-            self.curr_game_map[h_r][h_x][h_y] = self.last_hero_step
-        else:
-            self.curr_game_map[h_r][h_x][h_y] = '_'
+        if action != 'STAY':
+            if self.last_hero_step != 'T':
+                self.curr_game_map[h_r][h_x][h_y] = self.last_hero_step
+            else:
+                self.curr_game_map[h_r][h_x][h_y] = '_'
 
-        self.last_hero_step = self.curr_game_map[next_h_r][next_h_x][next_h_y]
-        self.curr_game_map[next_h_r][next_h_x][next_h_y] = 'H'
+            self.last_hero_step = self.curr_game_map[next_h_r][next_h_x][next_h_y]
+            self.curr_game_map[next_h_r][next_h_x][next_h_y] = 'H'
 
         new_state = self.serialize_state()
         return new_state, new_reward
 
     def is_final_state(self):
-        return self.current_pos == self.finish_pos
+        return self.current_pos == self.finish_pos or self.busted
 
 
     def get_legal_actions(self):
@@ -254,16 +264,17 @@ class Game(object):
 
     def deserialize_state(self, state):
         g_pos = None
-        h_r, _, h_y = self.current_pos
+        h_r, h_x, h_y = self.current_pos
         _, r_y = self.rooms_dim[h_r]
         space_right = self.radius if h_y + self.radius < r_y else r_y - h_y - 1
         space_left = self.radius if h_y - self.radius >= 0 else h_y
+        space_up = self.radius if h_x - self.radius >= 0 else h_x
         state_col_no = space_left + space_right + 1
-
+        s_x, s_y = h_x - space_up, h_y - space_left
         g_location = 0
         for i in state:
             if i == 'G':
-                g_pos = g_location / state_col_no, g_location % state_col_no
+                g_pos = s_x + (g_location / state_col_no), s_y + (g_location % state_col_no)
                 break
             g_location += 1
 
@@ -274,26 +285,82 @@ class Game(object):
 
         return g_pos, state_extended
 
+    def best_action(self, Q, state, legal_actions):
+
+        best_action = None
+        best_v = -999999999
+        for legal_action in legal_actions:
+            if (state, legal_action) not in Q:
+                Q[(state, legal_action)] = 0
+            # print legal_action, Q[(state, legal_action)]
+            if Q[(state, legal_action)] > best_v:
+                best_v = Q[(state, legal_action)]
+                best_action = legal_action
+
+        return best_action
+        # return choice(legal_actions)
+
 
 if __name__ == '__main__':
-    game = Game('test.txt', 2)
+    game = Game('test1.txt', 4)
     game.print_game_initial_configuration()
     # game.print_current_game()
-    for p in range(1000):
+    pas = 0
+    score = 0
+    EPISODES = 1000
+    Q = {}
+    scores = []
+
+    for train_ep in range(EPISODES):
+        game.reset_game()
+        score = 0
+        pas = 0
+        while pas < 100000 and not game.is_final_state():
+            state = game.serialize_state()
+            # sleep(0.1)
+            # action = choice(game.get_legal_actions())
+            action = game.best_action(Q, state, game.get_legal_actions())
+
+            if (state, action) not in Q:
+                Q[(state, action)] = 0
+
+            new_state, reward = game.game_move(action)
+            best_val = -999999999
+            new_actions = game.get_legal_actions()
+
+            for new_action in new_actions:
+                if (new_state, new_action) not in Q:
+                    Q[(new_state, new_action)] = 0
+                if Q[(new_state, new_action)] > best_val:
+                    best_val = Q[(new_state, new_action)]
+
+            Q[(state, action)] = Q[(state, action)] + 0.1 * (reward + 0.99 * best_val - Q[(state, action)])
+
+            score += reward
+            pas += 1
+        print("Episode %6d / %6d" % (train_ep, EPISODES))
+
+        # if game.current_pos == game.finish_pos:
+        #     score += FINISH_REWARD
+        scores.append(score)
+
+    game.reset_game()
+    score = 0
+    while pas < 100000 and not game.is_final_state():
         state = game.serialize_state()
-        _, state1 = game.deserialize_state(state)
-        # for h in state1:
-        #     print h
-        # print ''
-        sleep(0.2)
-        action = choice(game.get_legal_actions())
-        print "ACTION: %s " % action
-        state, reward = game.game_move(action)
-        print "New Reward", reward
-        _, state = game.deserialize_state(state)
-        for h in state:
+        # sleep(0.1)
+        # action = choice(game.get_legal_actions())
+        action = game.best_action(Q, state, game.get_legal_actions())
+        print action
+        new_state, reward = game.game_move(action)
+        print reward
+        _, _des_state = game.deserialize_state(new_state)
+        for h in _des_state:
             print h
         print ''
-        sleep(0.5)
-
-
+        sleep(0.2)
+        score += reward
+    if game.current_pos == game.finish_pos:
+        print "You win %d " % score
+    else:
+        print "You lost %d " % score
