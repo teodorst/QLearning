@@ -195,7 +195,9 @@ class TableGenerator(object):
         rooms = range(rooms_no)
         start_room = choice(rooms)
         rooms.remove(start_room)
-        end_room = choice(rooms)
+        end_room = start_room
+        if rooms:
+            end_room = choice(rooms)
 
         start_x = randint(0, rooms_dimensions[start_room][0] - 1)
         start_y = randint(0, rooms_dimensions[start_room][1] - 1)
@@ -248,10 +250,10 @@ class TableGenerator(object):
 if __name__ == '__main__':
     table_generator = TableGenerator()
     generated_portals, generated_table = table_generator.generate_table(
-        3, [(12, 12), (12, 12), (12, 12)], 2, 4, 50, 40)
-    table_generator.write_table(generated_table, generated_portals, 'test_test.txt')
+        1, [(10, 10), (15, 15), (15, 15), (15, 15), (15, 15), (15, 15)], 1, 0, 4, 2)
+    table_generator.write_table(generated_table, generated_portals, 'test_small.in')
 
-    portals2, table2 = table_generator.read_table('test_test.txt')
+    portals2, table2 = table_generator.read_table('test_small.in')
     # print table2
     print portals2
 
