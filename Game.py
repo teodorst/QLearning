@@ -307,13 +307,3 @@ class Game(object):
             return choice(legal_actions)
         else:
             return self.best_action(Q, state, legal_actions)
-
-
-
-
-
-
-
-
-
-
