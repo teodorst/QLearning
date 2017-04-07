@@ -8,8 +8,7 @@ class TableGenerator(object):
     def __init__(self):
         super(TableGenerator, self).__init__()
 
-    @staticmethod
-    def write_table(table, portals, filename):
+    def write_table(self, table, portals, filename):
         rooms_no = len(table)
 
         with open(filename, 'w') as output_file:
@@ -27,8 +26,7 @@ class TableGenerator(object):
                 # print portal
                 output_file.write(' '.join(str(s) for s in portal) + '\n')
 
-    @staticmethod
-    def read_table(filename):
+    def read_table(self, filename):
         portals = []
         castle = []
 
@@ -63,19 +61,16 @@ class TableGenerator(object):
 
         return portals, castle
 
-    @staticmethod
-    def validate_points(point1, point2):
+    def validate_points(self, point1, point2):
         return distance(point1, point2) >= 2
 
-    @staticmethod
-    def print_castle(castle, rooms_no, rooms_dimensions):
+    def print_castle(self, castle, rooms_no, rooms_dimensions):
         for room in range(rooms_no):
             print "Room %d" % room
             for room_line in range(rooms_dimensions[room][0]):
                 print castle[room][room_line]
 
-    @staticmethod
-    def generate_new_portal(sources, targets, rooms_dimensions):
+    def generate_new_portal(self, sources, targets, rooms_dimensions):
         room1 = choice(sources)
         room2 = choice(targets)
         while room2 == room1:
@@ -89,40 +84,38 @@ class TableGenerator(object):
                       (room2, room2_coords[0], room2_coords[1]))
         return new_portal
 
-    @staticmethod
-    def validate_portal(current_portals, new_portal):
+    def validate_portal(self, current_portals, new_portal):
         new_room1, new_room2 = new_portal
         ok_flag = True
         for portal in current_portals:
             room1, room2 = portal
             if new_room1[0] == room1[0]:
-                if not TableGenerator.validate_points([new_room1[1], new_room1[2]],
-                                                      [room1[1], room1[2]]):
+                if not self.validate_points([new_room1[1], new_room1[2]],
+                                            [room1[1], room1[2]]):
                     ok_flag = False
                     break
 
             if new_room2[0] == room2[0]:
-                if not TableGenerator.validate_points([new_room2[1], new_room2[2]],
-                                                      [room2[1], room2[2]]):
+                if not self.validate_points([new_room2[1], new_room2[2]],
+                                            [room2[1], room2[2]]):
                     ok_flag = False
                     break
 
             if new_room1[0] == room2[0]:
-                if not TableGenerator.validate_points([new_room1[1], new_room1[2]],
-                                                      [room2[1], room2[2]]):
+                if not self.validate_points([new_room1[1], new_room1[2]],
+                                            [room2[1], room2[2]]):
                     ok_flag = False
                     break
 
             if new_room2[0] == room1[0]:
-                if not TableGenerator.validate_points([new_room2[1], new_room2[2]],
-                                                      [room1[1], room1[2]]):
+                if not self.validate_points([new_room2[1], new_room2[2]],
+                                            [room1[1], room1[2]]):
                     ok_flag = False
                     break
 
         return ok_flag
 
-    @staticmethod
-    def generate_portals(rooms_no, rooms_dimensions, portals_no, start_room):
+    def generate_portals(self, rooms_no, rooms_dimensions, portals_no, start_room):
         # Ma asigur ca o sa conectez toate camerele
         # Portal este (room, x, y)
         connected_rooms = [start_room]
@@ -131,10 +124,10 @@ class TableGenerator(object):
         portals = []
         print disconnected_rooms
         while len(disconnected_rooms):
-            new_portal = TableGenerator.generate_new_portal(connected_rooms, disconnected_rooms,
-                                                            rooms_dimensions)
+            new_portal = self.generate_new_portal(connected_rooms, disconnected_rooms,
+                                                  rooms_dimensions)
 
-            if TableGenerator.validate_portal(portals, new_portal):
+            if self.validate_portal(portals, new_portal):
                 disc_room = new_portal[1][0]
                 connected_rooms.append(disc_room)
                 disconnected_rooms.remove(disc_room)
@@ -143,16 +136,15 @@ class TableGenerator(object):
 
 
         while portals_counter < portals_no:
-            new_portal = TableGenerator.generate_new_portal(connected_rooms, connected_rooms,
-                                                            rooms_dimensions)
-            if TableGenerator.validate_portal(portals, new_portal):
+            new_portal = self.generate_new_portal(connected_rooms, connected_rooms,
+                                                  rooms_dimensions)
+            if self.validate_portal(portals, new_portal):
                 portals_counter += 1
                 portals.append(new_portal)
 
         return portals
 
-    @staticmethod
-    def generate_treasures(treasures_no, rooms_no, rooms_dimensions, castle):
+    def generate_treasures(self, treasures_no, rooms_no, rooms_dimensions, castle):
         treasures_contor = 0
         treasures = []
         while treasures_contor < treasures_no:
@@ -167,8 +159,7 @@ class TableGenerator(object):
         return treasures
 
 
-    @staticmethod
-    def generate_walls(walls_no, rooms_no, rooms_dimensions, castle):
+    def generate_walls(self, walls_no, rooms_no, rooms_dimensions, castle):
         walls = []
         walls_contor = 0
         while walls_contor < walls_no:
@@ -183,8 +174,7 @@ class TableGenerator(object):
 
         return walls
 
-    @staticmethod
-    def generate_guardians(guardians_no, rooms_no, rooms_dimensions, castle):
+    def generate_guardians(self, guardians_no, rooms_no, rooms_dimensions, castle):
         guardians = []
         guardians_contor = 0
         rooms_filled = set()
@@ -201,8 +191,7 @@ class TableGenerator(object):
                 rooms_filled.add(guardian_room)
         return guardians
 
-    @staticmethod
-    def generate_start_and_end(rooms_no, rooms_dimensions, castle):
+    def generate_start_and_end(self, rooms_no, rooms_dimensions, castle):
         rooms = range(rooms_no)
         start_room = choice(rooms)
         rooms.remove(start_room)
@@ -224,8 +213,7 @@ class TableGenerator(object):
         castle[end_room][end_x][end_y] = 'F'
         return ((start_room, start_x, start_y), (end_room, end_x, end_y))
 
-    @staticmethod
-    def generate_table(rooms_no, rooms_dimensions, guardians_no, portals_no,
+    def generate_table(self, rooms_no, rooms_dimensions, guardians_no, portals_no,
                        treasures_no, walls_no):
         if guardians_no > rooms_no:
             return None
@@ -235,34 +223,35 @@ class TableGenerator(object):
 
 
         print "Generating portals ..."
-        portals = TableGenerator.generate_portals(rooms_no, rooms_dimensions, portals_no, 0)
+        portals = self.generate_portals(rooms_no, rooms_dimensions, portals_no, 0)
         for portal in portals:
             entry, out = portal
             castle[entry[0]][entry[1]][entry[2]] = 'P'
             castle[out[0]][out[1]][out[2]] = 'P'
 
-        print "Generating treasures ..."
-        TableGenerator.generate_treasures(treasures_no, rooms_no, rooms_dimensions, castle)
-
         print "Generating walls ..."
-        TableGenerator.generate_walls(walls_no, rooms_no, rooms_dimensions, castle)
+        self.generate_walls(walls_no, rooms_no, rooms_dimensions, castle)
+
+        print "Generating treasures ..."
+        self.generate_treasures(treasures_no, rooms_no, rooms_dimensions, castle)
 
         print "Generating garidans ..."
-        TableGenerator.generate_guardians(guardians_no, rooms_no, rooms_dimensions, castle)
+        self.generate_guardians(guardians_no, rooms_no, rooms_dimensions, castle)
 
-        TableGenerator.generate_start_and_end(rooms_no, rooms_dimensions, castle)
+        self.generate_start_and_end(rooms_no, rooms_dimensions, castle)
 
-        TableGenerator.print_castle(castle, rooms_no, rooms_dimensions)
+        self.print_castle(castle, rooms_no, rooms_dimensions)
 
         return portals, castle
 
 
 if __name__ == '__main__':
     table_generator = TableGenerator()
-    # portals, table = table_generator.generate_table(2, [(20, 20), (10, 10)], 1, 2, 30, 15)
-    # table_generator.write_table(table, portals, 'test1.txt')
+    generated_portals, generated_table = table_generator.generate_table(
+        3, [(12, 12), (12, 12), (12, 12)], 2, 4, 50, 40)
+    table_generator.write_table(generated_table, generated_portals, 'test_test.txt')
 
-    portals2, table2 = table_generator.read_table('test1.txt')
+    portals2, table2 = table_generator.read_table('test_test.txt')
     # print table2
     print portals2
 

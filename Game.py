@@ -1,13 +1,14 @@
-from table_ganerator import TableGenerator
 from copy import deepcopy
 from utils import distance
 from random import choice, random
 from time import sleep
+import sys
 
+from table_ganerator import TableGenerator
 
-TREASURE_REWARD = 1000
-FINISH_REWARD = 5000
-STEP_REWARD = -10
+TREASURE_REWARD = 100
+FINISH_REWARD = 30
+STEP_REWARD = -1
 
 GUARD_INVALID_CODES = ['#', 'P', 'T']
 HERO_INVALID_CODES = ['#', 'G']
@@ -200,18 +201,8 @@ class Game(object):
             self.curr_game_map[h_r][h_x][h_y] = '_'
             self.last_hero_step = 'P'
             h_r, h_x, h_y = (next_h_r, next_h_x, next_h_y)
-
-            try:
-                portal = [x for x in self.portals if x[0] == (next_h_r, next_h_x, next_h_y)][0]
-                next_h_r, next_h_x, next_h_y = portal[1]
-            except IndexError as e:
-                print (next_h_r, next_h_x, next_h_y)
-                for room in range(self.rooms_no):
-                    for i in range(self.rooms_dim[room][0]):
-                        print self.curr_game_map[room][i]
-                    print ''
-                print self.portals
-            # update ex reward here
+            portal = [x for x in self.portals if x[0] == (next_h_r, next_h_x, next_h_y)][0]
+            next_h_r, next_h_x, next_h_y = portal[1]
 
         new_reward = self.curr_game_rewards[next_h_r][next_h_x][next_h_y]
         if new_reward == TREASURE_REWARD:
@@ -288,7 +279,7 @@ class Game(object):
     def best_action(self, Q, state, legal_actions):
 
         best_action = None
-        best_v = -999999999
+        best_v = -sys.maxint
         for legal_action in legal_actions:
             if (state, legal_action) not in Q:
                 Q[(state, legal_action)] = 0
@@ -317,68 +308,12 @@ class Game(object):
         else:
             return self.best_action(Q, state, legal_actions)
 
-if __name__ == '__main__':
-    game = Game('test1.txt', 4)
-    game.print_game_initial_configuration()
-    # game.print_current_game()
-    pas = 0
-    score = 0
-    EPISODES = 9000
-    Q = {}
-    scores = []
 
-    for train_ep in range(EPISODES):
-        game.reset_game()
-        score = 0
-        pas = 0
-        while pas < 10000 and not game.is_final_state():
-            state = game.serialize_state()
-            # sleep(0.1)
-            # action = choice(game.get_legal_actions())
-            # action = game.best_action(Q, state, game.get_legal_actions())
-            action = game.epsilon_greedy(Q, state, game.get_legal_actions(), 0.05)
 
-            if (state, action) not in Q:
-                Q[(state, action)] = 0
 
-            new_state, reward = game.game_move(action)
-            best_val = -999999999
-            new_actions = game.get_legal_actions()
 
-            for new_action in new_actions:
-                if (new_state, new_action) not in Q:
-                    Q[(new_state, new_action)] = 0
-                if Q[(new_state, new_action)] > best_val:
-                    best_val = Q[(new_state, new_action)]
 
-            Q[(state, action)] = Q[(state, action)] + 0.1 * (reward + 0.99 * best_val - Q[(state, action)])
 
-            score += reward
-            pas += 1
-        print("Episode %6d / %6d" % (train_ep, EPISODES))
 
-        # if game.current_pos == game.finish_pos:
-        #     score += FINISH_REWARD
-        scores.append(score)
 
-    game.reset_game()
-    score = 0
-    while pas < 10000 and not game.is_final_state():
-        state = game.serialize_state()
-        # sleep(0.1)
-        # action = choice(game.get_legal_actions())
-        # action = game.best_action(Q, state, game.get_legal_actions())
-        action = game.epsilon_greedy(Q, state, game.get_legal_actions(), 0.05)
-        print action
-        new_state, reward = game.game_move(action)
-        print reward
-        _, _des_state = game.deserialize_state(new_state)
-        for h in _des_state:
-            print h
-        print ''
-        sleep(0.2)
-        score += reward
-    if game.current_pos == game.finish_pos:
-        print "You win %d " % score
-    else:
-        print "You lost %d " % score
+
